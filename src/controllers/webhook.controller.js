@@ -12,12 +12,14 @@ export const handleZaloWebhook = async (req, res) => {
         const messageText = req.body?.message?.text; // Lấy tin nhắn từ webhook
         const eventName = req.body?.event_name; // Lấy loại sự kiện từ webhook
         const attachments = req.body?.message?.attachments || []; // Lấy attachment (hình ảnh, file, etc.)
+        const admin_id_from_OD = req.body?.sender?.admin_id || null;
 
         // Xử lý sự kiện OA gửi tin nhắn
-        if (eventName === "oa_send_text") {
+        if (
+            eventName === "oa_send_text" &&
+            admin_id_from_OD == "7365147034329534561"
+        ) {
             const recipientId = req.body?.recipient?.id;
-            console.log(JSON.stringify(req.body));
-
             if (recipientId) {
                 try {
                     const redisClient = await zaloChatQueue.client;
