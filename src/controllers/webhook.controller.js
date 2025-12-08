@@ -40,11 +40,11 @@ export const handleZaloWebhook = async (req, res) => {
         if (eventName === "user_send_sticker") {
             try {
                 const redisClient = await zaloChatQueue.client;
-                const firstMessageKey = `first-msg-${UID}`;
-                const isFirstMessage = await redisClient.get(firstMessageKey);
+                const hasSentAnyMsgKey = `has-sent-any-msg-${UID}`;
+                const hasSentAnyMsg = await redisClient.get(hasSentAnyMsgKey);
 
-                // Nếu là tin nhắn đầu tiên → phản hồi ngay
-                if (!isFirstMessage) {
+                // Nếu chưa có tin nhắn nào trước (text/image/file) → phản hồi ngay
+                if (!hasSentAnyMsg) {
                     logger.info(`[Webhook] Tin nhắn đầu tiên từ UID ${UID} là sticker`);
                     
                     const accessToken = await getValidAccessToken();
@@ -57,8 +57,8 @@ export const handleZaloWebhook = async (req, res) => {
                         }
                     }
 
-                    // Đánh dấu UID đã có tin nhắn
-                    await redisClient.set(firstMessageKey, "true", "EX", 86400); // Lưu 24h
+                    // Đánh dấu UID đã có tin nhắn bất kỳ
+                    await redisClient.set(hasSentAnyMsgKey, "true", "EX", 86400); // Lưu 24h
                 }
 
                 return res.status(200).send("OK (Sticker handled)");
@@ -128,6 +128,9 @@ export const handleZaloWebhook = async (req, res) => {
             // 1. Lấy Redis client từ queue (BullMQ cung cấp sẵn)
             const redisClient = await zaloChatQueue.client;
             logger.info(`[Webhook] Đã kết nối Redis client thành công`);
+
+            // Đánh dấu đã có tin nhắn bất kỳ (text/image/file)
+            await redisClient.set(`has-sent-any-msg-${UID}`, "true", "EX", 86400);
 
             // 2. Định nghĩa key/jobId cho người dùng này
             const pendingMessageKey = `pending-msgs-${UID}`;
