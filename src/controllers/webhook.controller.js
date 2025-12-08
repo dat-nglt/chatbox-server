@@ -32,9 +32,17 @@ export const handleZaloWebhook = async (req, res) => {
                     logger.info(
                         `[Webhook] Đã chặn UID ${recipientId} do OA gửi tin nhắn`
                     );
+
+                    // Hủy job debounce đang chờ nếu có
+                    const debounceJobId = `debounce-job-${recipientId}`;
+                    const existingJob = await zaloChatQueue.getJob(debounceJobId);
+                    if (existingJob && (await existingJob.isDelayed())) {
+                        await existingJob.remove();
+                        logger.info(`[Webhook] Đã hủy job debounce cho UID ${recipientId} do OA gửi tin nhắn`);
+                    }
                 } catch (redisError) {
                     logger.error(
-                        `[Webhook] Lỗi Redis khi chặn UID:`,
+                        `[Webhook] Lỗi Redis khi chặn UID và hủy job:`,
                         redisError.message
                     );
                 }
