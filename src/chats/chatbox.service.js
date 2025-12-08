@@ -1,7 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION_RESPONSE } from "../promts/promt.v8.response.js";
 import logger from "../utils/logger.js";
-import { notifyAdminQuotaExceeded, notifyAdminSendMessageError } from "../utils/adminNotification.js";
+import {
+    notifyAdminQuotaExceeded,
+    notifyAdminSendMessageError,
+} from "../utils/adminNotification.js";
 import apiKeyManager from "../utils/apiKeyManager.js";
 
 // (Giữ nguyên createChatSessionService)
@@ -63,7 +66,7 @@ export const handleChatService = async (
                 logger.warn(
                     `[AI Warning] Phản hồi rỗng/bị chặn cho [${UID}] với model ${model}`
                 );
-                return "Dạ, hệ thống đang bảo trì tạm thời. Anh/chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ trực tiếp mình ạ.";
+                return "Dạ, hệ thống hỗ trợ khách hàng hiện đang bảo trì. Mình để lại số điện thoại giúp em để em kết nối với Bộ phận kinh doanh hỗ trợ mình nhé.";
             }
         } catch (error) {
             attempts++;
@@ -124,7 +127,7 @@ export const handleChatService = async (
                             );
                         }
                     }
-                    return "Dạ, hệ thống đang bảo trì tạm thời. Anh/chị vui lòng để lại số điện thoại để em chuyển tiếp đến bộ phận kinh doanh hỗ trợ trực tiếp mình ạ.";
+                    return "Dạ, hệ thống hỗ trợ khách hàng hiện đang bảo trì. Mình để lại số điện thoại giúp em để em kết nối với Bộ phận kinh doanh hỗ trợ mình nhé.";
                 }
             }
 

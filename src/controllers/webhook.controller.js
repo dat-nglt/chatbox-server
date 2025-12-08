@@ -4,7 +4,8 @@ import { zaloChatQueue } from "../chats/queue.service.js";
 import { getValidAccessToken, sendZaloMessage } from "../chats/zalo.service.js";
 import * as notifyAdmin from "../utils/adminNotification.js";
 
-const DEBOUNCE_DELAY = 20000; // 20 giây
+const DEBOUNCE_DELAY = 20000;
+const BLOCK_DURATION_SECONDS = 18000; // 5 hours
 const UN_ALLOWED_UID = ["1591235795556991810", "7365147034329534561"];
 // const ALLOWED_UID = ["7365147034329534561"];
 
@@ -35,8 +36,8 @@ export const handleZaloWebhook = async (req, res) => {
                         `blocked-uid-${recipientId_from_OA_SEND_EVENT}`,
                         "true",
                         "EX",
-                        120
-                    ); // Chặn UID trong 2 phút
+                        BLOCK_DURATION_SECONDS
+                    ); // Chặn UID trong 5 tiếng
                     logger.warn(
                         `[Webhook] Đã chặn UID ${recipientId_from_OA_SEND_EVENT} do OA gửi tin nhắn`
                     );
@@ -69,9 +70,15 @@ export const handleZaloWebhook = async (req, res) => {
                     );
                     try {
                         const accessToken = await getValidAccessToken();
-                        await notifyAdmin.notifyAdminWebhookError(redisError, accessToken);
+                        await notifyAdmin.notifyAdminWebhookError(
+                            redisError,
+                            accessToken
+                        );
                     } catch (notifyErr) {
-                        logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+                        logger.error(
+                            `[Webhook] Lỗi gửi thông báo admin:`,
+                            notifyErr.message
+                        );
                     }
                 }
             }
@@ -95,14 +102,20 @@ export const handleZaloWebhook = async (req, res) => {
             );
             try {
                 const accessToken = await getValidAccessToken();
-                await notifyAdmin.notifyAdminWebhookError(redisError, accessToken);
+                await notifyAdmin.notifyAdminWebhookError(
+                    redisError,
+                    accessToken
+                );
             } catch (notifyErr) {
-                logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+                logger.error(
+                    `[Webhook] Lỗi gửi thông báo admin:`,
+                    notifyErr.message
+                );
             }
         }
 
         // Kiểm tra xem UID có được phép không
-        if (!UN_ALLOWED_UID.includes(UID)) {
+        if (UN_ALLOWED_UID.includes(UID)) {
             logger.warn(
                 `[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`
             );
@@ -153,7 +166,11 @@ export const handleZaloWebhook = async (req, res) => {
                                 `[Webhook] ✗ Lỗi gửi phản hồi sticker:`,
                                 sendError.message
                             );
-                            await notifyAdmin.notifyAdminSendMessageError(UID, sendError, accessToken);
+                            await notifyAdmin.notifyAdminSendMessageError(
+                                UID,
+                                sendError,
+                                accessToken
+                            );
                         }
                     }
 
@@ -171,9 +188,15 @@ export const handleZaloWebhook = async (req, res) => {
                 logger.error(`[Webhook] Lỗi xử lý sticker:`, error.message);
                 try {
                     const accessToken = await getValidAccessToken();
-                    await notifyAdmin.notifyAdminWebhookError(error, accessToken);
+                    await notifyAdmin.notifyAdminWebhookError(
+                        error,
+                        accessToken
+                    );
                 } catch (notifyErr) {
-                    logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+                    logger.error(
+                        `[Webhook] Lỗi gửi thông báo admin:`,
+                        notifyErr.message
+                    );
                 }
                 return res.status(200).send("OK (Sticker error)");
             }
@@ -298,9 +321,15 @@ export const handleZaloWebhook = async (req, res) => {
             });
             try {
                 const accessToken = await getValidAccessToken();
-                await notifyAdmin.notifyAdminWebhookError(queueError, accessToken);
+                await notifyAdmin.notifyAdminWebhookError(
+                    queueError,
+                    accessToken
+                );
             } catch (notifyErr) {
-                logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+                logger.error(
+                    `[Webhook] Lỗi gửi thông báo admin:`,
+                    notifyErr.message
+                );
             }
             // Vẫn gửi response OK để Zalo không retry
             res.status(200).send("OK (Queue Error)");
@@ -311,7 +340,10 @@ export const handleZaloWebhook = async (req, res) => {
             const accessToken = await getValidAccessToken();
             await notifyAdmin.notifyAdminWebhookError(error, accessToken);
         } catch (notifyErr) {
-            logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+            logger.error(
+                `[Webhook] Lỗi gửi thông báo admin:`,
+                notifyErr.message
+            );
         }
         if (!res.headersSent) {
             res.status(500).send("Internal Server Error");
