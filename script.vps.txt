@@ -1,0 +1,38 @@
+wget https://raw.githubusercontent.com/dat-nglt/chatbox-server/main/install.sh
+
+pm2 start npm --name chatbox-server -- start --prefix /var/www/chatbox-server
+
+rm -f /c/Users/USER/.ssh/known_hosts
+
+Kiểm tra trạng thái redis: sudo systemctl status redis-server
+
+Khởi động redis: sudo systemctl status redis-server
+
+Dừng redis: sudo systemctl stop redis-server
+
+Khởi động lại reids: sudo systemctl restart redis-server
+
+Tải lại redis: sudo systemctl reload redis-server
+
+Bật Redis chạy tự động khi reboot VPS: sudo systemctl enable redis-server
+
+Tắt auto-start: sudo systemctl disable redis-server
+
+Kiểm tra Redis đang lắng nghe port nào: sudo lsof -i :6379
+
+Kết nối vào Redis CLI: redis-cli
+
+
+KEYS *
+GET key
+SET key value
+DEL key
+FLUSHALL
+
+Xóa toàn bộ dữ liệu Redis (cẩn thận!): redis-cli FLUSHALL
+
+Xóa database hiện tại: redis-cli FLUSHDB
+
+Cách đăng nhập vào Redis: redis-cli AUTH khonggilatuyetdoiBAOMAT2025
+
+
