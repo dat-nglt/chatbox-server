@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { SYSTEM_INSTRUCTION_RESPONSE } from "../promts/promt.v7.response.js";
+import { SYSTEM_INSTRUCTION_RESPONSE } from "../promts/promt.v8.response.js";
 import logger from "../utils/logger.js";
 import { notifyAdminQuotaExceeded, notifyAdminSendMessageError } from "../utils/adminNotification.js";
 import apiKeyManager from "../utils/apiKeyManager.js";
