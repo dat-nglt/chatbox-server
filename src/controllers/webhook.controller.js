@@ -13,6 +13,34 @@ export const handleZaloWebhook = async (req, res) => {
         const eventName = req.body?.event_name; // Lấy loại sự kiện từ webhook
         const attachments = req.body?.message?.attachments || []; // Lấy attachment (hình ảnh, file, etc.)
 
+        // Xử lý sự kiện OA gửi tin nhắn
+        if (eventName === "oa_send_text") {
+            logger.warn(`[Webhook] Xử lý sự kiện OA gửi tin nhắn`);
+            const recipientId = req.body?.recipient?.id;
+            if (recipientId) {
+                try {
+                    const redisClient = await zaloChatQueue.client;
+                    await redisClient.set(`blocked-uid-${recipientId}`, "true", "EX", 86400); // Chặn UID trong 24 giờ
+                    logger.info(`[Webhook] Đã chặn UID ${recipientId} do OA gửi tin nhắn`);
+                } catch (redisError) {
+                    logger.error(`[Webhook] Lỗi Redis khi chặn UID:`, redisError.message);
+                }
+            }
+            return res.status(200).send("OK (OA send handled)");
+        }
+
+        // Kiểm tra xem UID có bị chặn không
+        try {
+            const redisClient = await zaloChatQueue.client;
+            const isBlocked = await redisClient.get(`blocked-uid-${UID}`);
+            if (isBlocked) {
+                logger.warn(`[Webhook] UID ${UID} bị chặn, bỏ qua xử lý`);
+                return res.status(200).send("OK (UID blocked)");
+            }
+        } catch (redisError) {
+            logger.error(`[Webhook] Lỗi kiểm tra UID bị chặn:`, redisError.message);
+        }
+
         // Kiểm tra xem UID có được phép không
         if (!ALLOWED_UID.includes(UID)) {
             logger.warn(
