@@ -16,13 +16,25 @@ export const handleZaloWebhook = async (req, res) => {
         // Xử lý sự kiện OA gửi tin nhắn
         if (eventName === "oa_send_text") {
             const recipientId = req.body?.recipient?.id;
+            console.log(req.body?.sender?.id);
+
             if (recipientId) {
                 try {
                     const redisClient = await zaloChatQueue.client;
-                    await redisClient.set(`blocked-uid-${recipientId}`, "true", "EX", 86400); // Chặn UID trong 24 giờ
-                    logger.info(`[Webhook] Đã chặn UID ${recipientId} do OA gửi tin nhắn`);
+                    await redisClient.set(
+                        `blocked-uid-${recipientId}`,
+                        "true",
+                        "EX",
+                        86400
+                    ); // Chặn UID trong 24 giờ
+                    logger.info(
+                        `[Webhook] Đã chặn UID ${recipientId} do OA gửi tin nhắn`
+                    );
                 } catch (redisError) {
-                    logger.error(`[Webhook] Lỗi Redis khi chặn UID:`, redisError.message);
+                    logger.error(
+                        `[Webhook] Lỗi Redis khi chặn UID:`,
+                        redisError.message
+                    );
                 }
             }
             return res.status(200).send("OK (OA send handled)");
@@ -37,7 +49,10 @@ export const handleZaloWebhook = async (req, res) => {
                 return res.status(200).send("OK (UID blocked)");
             }
         } catch (redisError) {
-            logger.error(`[Webhook] Lỗi kiểm tra UID bị chặn:`, redisError.message);
+            logger.error(
+                `[Webhook] Lỗi kiểm tra UID bị chặn:`,
+                redisError.message
+            );
         }
 
         // Kiểm tra xem UID có được phép không
@@ -72,20 +87,36 @@ export const handleZaloWebhook = async (req, res) => {
 
                 // Nếu chưa có tin nhắn nào trước (text/image/file) → phản hồi ngay
                 if (!hasSentAnyMsg) {
-                    logger.info(`[Webhook] Tin nhắn đầu tiên từ UID ${UID} là sticker`);
-                    
+                    logger.info(
+                        `[Webhook] Tin nhắn đầu tiên từ UID ${UID} là sticker`
+                    );
+
                     const accessToken = await getValidAccessToken();
                     if (accessToken) {
                         try {
-                            await sendZaloMessage(UID, "Dạ chào anh/chị ạ, mình đang quan tâm đến sản phẩm hay dịch vụ nào bên em ạ?", accessToken);
-                            logger.info(`[Webhook] ✓ Gửi phản hồi sticker thành công cho UID: ${UID}`);
+                            await sendZaloMessage(
+                                UID,
+                                "Dạ chào anh/chị ạ, mình đang quan tâm đến sản phẩm hay dịch vụ nào bên em ạ?",
+                                accessToken
+                            );
+                            logger.info(
+                                `[Webhook] ✓ Gửi phản hồi sticker thành công cho UID: ${UID}`
+                            );
                         } catch (sendError) {
-                            logger.error(`[Webhook] ✗ Lỗi gửi phản hồi sticker:`, sendError.message);
+                            logger.error(
+                                `[Webhook] ✗ Lỗi gửi phản hồi sticker:`,
+                                sendError.message
+                            );
                         }
                     }
 
                     // Đánh dấu UID đã có tin nhắn bất kỳ
-                    await redisClient.set(hasSentAnyMsgKey, "true", "EX", 86400); // Lưu 24h
+                    await redisClient.set(
+                        hasSentAnyMsgKey,
+                        "true",
+                        "EX",
+                        86400
+                    ); // Lưu 24h
                 }
 
                 return res.status(200).send("OK (Sticker handled)");
@@ -157,7 +188,12 @@ export const handleZaloWebhook = async (req, res) => {
             logger.info(`[Webhook] Đã kết nối Redis client thành công`);
 
             // Đánh dấu đã có tin nhắn bất kỳ (text/image/file)
-            await redisClient.set(`has-sent-any-msg-${UID}`, "true", "EX", 86400);
+            await redisClient.set(
+                `has-sent-any-msg-${UID}`,
+                "true",
+                "EX",
+                86400
+            );
 
             // 2. Định nghĩa key/jobId cho người dùng này
             const pendingMessageKey = `pending-msgs-${UID}`;
