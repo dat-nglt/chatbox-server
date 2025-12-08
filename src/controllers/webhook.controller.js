@@ -50,7 +50,7 @@ export const handleZaloWebhook = async (req, res) => {
                     const accessToken = await getValidAccessToken();
                     if (accessToken) {
                         try {
-                            await sendZaloMessage(UID, "Chào anh chị ạ!", accessToken);
+                            await sendZaloMessage(UID, "Dạ chào anh/chị ạ, mình đang quan tâm đến sản phẩm hay dịch vụ nào bên em ạ?", accessToken);
                             logger.info(`[Webhook] ✓ Gửi phản hồi sticker thành công cho UID: ${UID}`);
                         } catch (sendError) {
                             logger.error(`[Webhook] ✗ Lỗi gửi phản hồi sticker:`, sendError.message);
