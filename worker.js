@@ -6,6 +6,7 @@ import { analyzeUserMessageService, informationForwardingSynthesisService } from
 import { appendJsonToSheet } from "./src/chats/googleSheet.js";
 import { getValidAccessToken, sendZaloMessage } from "./src/chats/zalo.service.js";
 import { setupReminderJob, handleReminderCheck, updateLastReceivedTime } from "./src/chats/reminder.service.js";
+import * as notifyAdmin from "./src/utils/adminNotification.js";
 
 const connection = {
     host: process.env.REDIS_HOST || "localhost",
@@ -53,10 +54,15 @@ const worker = new Worker(
 
         // --- [LOGIC XỬ LÝ CHÍNH BẮT ĐẦU TỪ ĐÂY] ---
 
-        const accessToken = await getValidAccessToken();
-        if (!accessToken) {
-            logger.error(`Không nhận được accessToken`);
-            throw new Error("No valid access token available");
+        let accessToken;
+        try {
+            accessToken = await getValidAccessToken();
+            if (!accessToken) {
+                throw new Error("No valid access token available");
+            }
+        } catch (tokenError) {
+            logger.error(`Không nhận được accessToken: ${tokenError.message}`);
+            throw tokenError;
         }
 
         logger.info(`[Worker] Bắt đầu xử lý phiên trò chuyện [${job.id}] cho ${UID} với nội dung: ${messageFromUser}`);
@@ -74,6 +80,7 @@ const worker = new Worker(
                 jsonData = JSON.parse(analyzeJSON);
             } catch (analyzeError) {
                 logger.error(`[Worker] Lỗi khi PHÂN TÍCH cho UID ${UID}:`, analyzeError.message);
+                await notifyAdmin.notifyAdminAnalyzeError(UID, analyzeError, accessToken);
                 throw analyzeError;
             }
 
@@ -101,6 +108,7 @@ const worker = new Worker(
                             `[Worker] LỖI NGHIÊM TRỌNG: Không thể ghi Sheet cho SĐT ${jsonData.soDienThoai}:`,
                             sheetError.message
                         );
+                        await notifyAdmin.notifyAdminSheetError(UID, sheetError, accessToken);
                     }
 
                     try {
@@ -113,6 +121,7 @@ const worker = new Worker(
                         logger.info(`[Worker] Đã gửi thông tin Lead thành công cho UID: ${UID}`);
                     } catch (leadError) {
                         logger.error(`[Worker] Lỗi khi GỬI LEAD cho UID ${UID}:`, leadError.message);
+                        await notifyAdmin.notifyAdminLeadForwardError(UID, leadError, accessToken);
                     }
                 }
                 // Đánh dấu đã có số điện thoại
@@ -127,17 +136,35 @@ const worker = new Worker(
 
             logger.info(`[Worker] Đang gọi AI phản hồi cho phiên trò chuyện [${UID}]  [${messageFromUser}]`);
 
-            const messageFromAI = await handleChatService(messageFromUser, UID, accessToken);
+            let messageFromAI;
+            try {
+                messageFromAI = await handleChatService(messageFromUser, UID, accessToken);
+            } catch (chatError) {
+                logger.error(`[Worker] Lỗi khi gọi AI phản hồi cho UID ${UID}:`, chatError.message);
+                await notifyAdmin.notifyAdminChatServiceError(UID, chatError, accessToken);
+                throw chatError;
+            }
 
             conversationService.addMessage(UID, "model", messageFromAI);
             logger.info(`[Worker] AI trả lời [${UID}]: ${messageFromAI.substring(0, 20)}...`);
 
-            await sendZaloMessage(UID, messageFromAI, accessToken);
+            try {
+                await sendZaloMessage(UID, messageFromAI, accessToken);
+            } catch (sendError) {
+                logger.error(`[Worker] Lỗi khi gửi tin nhắn cho UID ${UID}:`, sendError.message);
+                await notifyAdmin.notifyAdminSendMessageError(UID, sendError, accessToken);
+                throw sendError;
+            }
 
             // Chỉ thiết lập reminder nếu chưa có số điện thoại
             const hasPhone = await redisClient.get(`has-phone-${UID}`);
             if (hasPhone !== "true") {
-                await setupReminderJob(redisClient, UID, zaloChatQueue);
+                try {
+                    await setupReminderJob(redisClient, UID, zaloChatQueue);
+                } catch (reminderError) {
+                    logger.error(`[Worker] Lỗi khi thiết lập reminder cho UID ${UID}:`, reminderError.message);
+                    await notifyAdmin.notifyAdminReminderError(UID, reminderError, accessToken);
+                }
             } else {
                 logger.info(`[Worker] Bỏ qua reminder job cho UID: ${UID} (đã có số điện thoại)`);
             }

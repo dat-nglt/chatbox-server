@@ -2,6 +2,7 @@ import logger from "../utils/logger.js";
 import conversationService from "../utils/conversation.js";
 import { zaloChatQueue } from "../chats/queue.service.js";
 import { getValidAccessToken, sendZaloMessage } from "../chats/zalo.service.js";
+import * as notifyAdmin from "../utils/adminNotification.js";
 
 const DEBOUNCE_DELAY = 20000; // 20 giây
 const UN_ALLOWED_UID = ["1591235795556991810", "7365147034329534561"];
@@ -66,6 +67,12 @@ export const handleZaloWebhook = async (req, res) => {
                         `[Webhook] Lỗi Redis khi chặn UID và hủy job:`,
                         redisError.message
                     );
+                    try {
+                        const accessToken = await getValidAccessToken();
+                        await notifyAdmin.notifyAdminWebhookError(redisError, accessToken);
+                    } catch (notifyErr) {
+                        logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+                    }
                 }
             }
             return res.status(200).send("OK (OA send handled)");
@@ -86,6 +93,12 @@ export const handleZaloWebhook = async (req, res) => {
                 `[Webhook] Lỗi kiểm tra UID bị chặn:`,
                 redisError.message
             );
+            try {
+                const accessToken = await getValidAccessToken();
+                await notifyAdmin.notifyAdminWebhookError(redisError, accessToken);
+            } catch (notifyErr) {
+                logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+            }
         }
 
         // Kiểm tra xem UID có được phép không
@@ -140,6 +153,7 @@ export const handleZaloWebhook = async (req, res) => {
                                 `[Webhook] ✗ Lỗi gửi phản hồi sticker:`,
                                 sendError.message
                             );
+                            await notifyAdmin.notifyAdminSendMessageError(UID, sendError, accessToken);
                         }
                     }
 
@@ -155,6 +169,12 @@ export const handleZaloWebhook = async (req, res) => {
                 return res.status(200).send("OK (Sticker handled)");
             } catch (error) {
                 logger.error(`[Webhook] Lỗi xử lý sticker:`, error.message);
+                try {
+                    const accessToken = await getValidAccessToken();
+                    await notifyAdmin.notifyAdminWebhookError(error, accessToken);
+                } catch (notifyErr) {
+                    logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+                }
                 return res.status(200).send("OK (Sticker error)");
             }
         }
@@ -276,12 +296,23 @@ export const handleZaloWebhook = async (req, res) => {
                 UID: UID,
                 message: messageFromUser,
             });
-
+            try {
+                const accessToken = await getValidAccessToken();
+                await notifyAdmin.notifyAdminWebhookError(queueError, accessToken);
+            } catch (notifyErr) {
+                logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+            }
             // Vẫn gửi response OK để Zalo không retry
             res.status(200).send("OK (Queue Error)");
         }
     } catch (error) {
         logger.error("[Webhook Controller] Lỗi nghiêm trọng:", error);
+        try {
+            const accessToken = await getValidAccessToken();
+            await notifyAdmin.notifyAdminWebhookError(error, accessToken);
+        } catch (notifyErr) {
+            logger.error(`[Webhook] Lỗi gửi thông báo admin:`, notifyErr.message);
+        }
         if (!res.headersSent) {
             res.status(500).send("Internal Server Error");
         }
