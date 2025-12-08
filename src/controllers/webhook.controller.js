@@ -16,7 +16,7 @@ export const handleZaloWebhook = async (req, res) => {
         // Xử lý sự kiện OA gửi tin nhắn
         if (eventName === "oa_send_text") {
             const recipientId = req.body?.recipient?.id;
-            console.log(req.body?.sender?.id);
+            console.log(JSON.stringify(req.body));
 
             if (recipientId) {
                 try {
