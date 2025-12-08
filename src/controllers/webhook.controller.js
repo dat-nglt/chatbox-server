@@ -1,4 +1,5 @@
 import logger from "../utils/logger.js";
+import conversationService from "../utils/conversation.js";
 import { zaloChatQueue } from "../chats/queue.service.js";
 import { getValidAccessToken, sendZaloMessage } from "../chats/zalo.service.js";
 
@@ -40,6 +41,10 @@ export const handleZaloWebhook = async (req, res) => {
                         await existingJob.remove();
                         logger.warn(`[Webhook] Đã hủy job debounce cho UID ${recipientId} do OA gửi tin nhắn`);
                     }
+
+                    // Lưu tin nhắn OA vào lịch sử cuộc trò chuyện
+                    conversationService.addMessage(recipientId, "model", messageText);
+                    logger.info(`[Webhook] Đã lưu tin nhắn OA vào lịch sử cho UID ${recipientId}`);
                 } catch (redisError) {
                     logger.error(
                         `[Webhook] Lỗi Redis khi chặn UID và hủy job:`,
