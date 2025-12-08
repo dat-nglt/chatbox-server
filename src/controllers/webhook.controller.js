@@ -27,9 +27,9 @@ export const handleZaloWebhook = async (req, res) => {
                         `blocked-uid-${recipientId}`,
                         "true",
                         "EX",
-                        86400
-                    ); // Chặn UID trong 24 giờ
-                    logger.info(
+                        120
+                    ); // Chặn UID trong 2 phút
+                    logger.warn(
                         `[Webhook] Đã chặn UID ${recipientId} do OA gửi tin nhắn`
                     );
 
@@ -38,7 +38,7 @@ export const handleZaloWebhook = async (req, res) => {
                     const existingJob = await zaloChatQueue.getJob(debounceJobId);
                     if (existingJob && (await existingJob.isDelayed())) {
                         await existingJob.remove();
-                        logger.info(`[Webhook] Đã hủy job debounce cho UID ${recipientId} do OA gửi tin nhắn`);
+                        logger.warn(`[Webhook] Đã hủy job debounce cho UID ${recipientId} do OA gửi tin nhắn`);
                     }
                 } catch (redisError) {
                     logger.error(
@@ -55,7 +55,7 @@ export const handleZaloWebhook = async (req, res) => {
             const redisClient = await zaloChatQueue.client;
             const isBlocked = await redisClient.get(`blocked-uid-${UID}`);
             if (isBlocked) {
-                logger.warn(`[Webhook] UID ${UID} bị chặn, bỏ qua xử lý`);
+                logger.warn(`[Webhook] UID ${UID} bị bỏ qua do OA ADMIN đã tiếp nhận trò chuyện`);
                 return res.status(200).send("OK (UID blocked)");
             }
         } catch (redisError) {
