@@ -4,8 +4,14 @@ import { zaloChatQueue } from "../chats/queue.service.js";
 import { getValidAccessToken, sendZaloMessage } from "../chats/zalo.service.js";
 
 const DEBOUNCE_DELAY = 20000; // 20 giây
-// const UN_ALLOWED_UID = ["1591235795556991810", "7365147034329534561"];
-const ALLOWED_UID = ["7365147034329534561"];
+const UN_ALLOWED_UID = ["1591235795556991810", "7365147034329534561"];
+// const ALLOWED_UID = ["7365147034329534561"];
+
+const OA_ADMIN_UID = [
+    "1591235795556991810",
+    "7365147034329534561",
+    "5584155984018191145",
+];
 
 export const handleZaloWebhook = async (req, res) => {
     try {
@@ -18,33 +24,43 @@ export const handleZaloWebhook = async (req, res) => {
         // Xử lý sự kiện OA gửi tin nhắn
         if (
             eventName === "oa_send_text" &&
-            admin_id_from_OD == "7365147034329534561"
+            OA_ADMIN_UID.includes(admin_id_from_OD)
         ) {
-            const recipientId = req.body?.recipient?.id;
-            if (recipientId) {
+            const recipientId_from_OA_SEND_EVENT = req.body?.recipient?.id;
+            if (recipientId_from_OA_SEND_EVENT) {
                 try {
                     const redisClient = await zaloChatQueue.client;
                     await redisClient.set(
-                        `blocked-uid-${recipientId}`,
+                        `blocked-uid-${recipientId_from_OA_SEND_EVENT}`,
                         "true",
                         "EX",
                         120
                     ); // Chặn UID trong 2 phút
                     logger.warn(
-                        `[Webhook] Đã chặn UID ${recipientId} do OA gửi tin nhắn`
+                        `[Webhook] Đã chặn UID ${recipientId_from_OA_SEND_EVENT} do OA gửi tin nhắn`
                     );
 
                     // Hủy job debounce đang chờ nếu có
-                    const debounceJobId = `debounce-job-${recipientId}`;
-                    const existingJob = await zaloChatQueue.getJob(debounceJobId);
+                    const debounceJobId = `debounce-job-${recipientId_from_OA_SEND_EVENT}`;
+                    const existingJob = await zaloChatQueue.getJob(
+                        debounceJobId
+                    );
                     if (existingJob && (await existingJob.isDelayed())) {
                         await existingJob.remove();
-                        logger.warn(`[Webhook] Đã hủy job debounce cho UID ${recipientId} do OA gửi tin nhắn`);
+                        logger.warn(
+                            `[Webhook] Đã hủy job debounce cho UID ${recipientId_from_OA_SEND_EVENT} do OA gửi tin nhắn`
+                        );
                     }
 
                     // Lưu tin nhắn OA vào lịch sử cuộc trò chuyện
-                    conversationService.addMessage(recipientId, "model", messageText);
-                    logger.info(`[Webhook] Đã lưu tin nhắn OA vào lịch sử cho UID ${recipientId}`);
+                    conversationService.addMessage(
+                        recipientId_from_OA_SEND_EVENT,
+                        "model",
+                        messageText
+                    );
+                    logger.info(
+                        `[Webhook] Đã lưu tin nhắn OA vào lịch sử cho UID ${recipientId_from_OA_SEND_EVENT}`
+                    );
                 } catch (redisError) {
                     logger.error(
                         `[Webhook] Lỗi Redis khi chặn UID và hủy job:`,
@@ -60,7 +76,9 @@ export const handleZaloWebhook = async (req, res) => {
             const redisClient = await zaloChatQueue.client;
             const isBlocked = await redisClient.get(`blocked-uid-${UID}`);
             if (isBlocked) {
-                logger.warn(`[Webhook] UID ${UID} bị bỏ qua do OA ADMIN đã tiếp nhận trò chuyện`);
+                logger.warn(
+                    `[Webhook] UID ${UID} bị bỏ qua do OA ADMIN đã tiếp nhận trò chuyện`
+                );
                 return res.status(200).send("OK (UID blocked)");
             }
         } catch (redisError) {
@@ -71,7 +89,7 @@ export const handleZaloWebhook = async (req, res) => {
         }
 
         // Kiểm tra xem UID có được phép không
-        if (!ALLOWED_UID.includes(UID)) {
+        if (!UN_ALLOWED_UID.includes(UID)) {
             logger.warn(
                 `[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`
             );
