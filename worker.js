@@ -92,13 +92,11 @@ const worker = new Worker(
                     );
                 } else {
                     logger.info(`[Worker] Gửi thông tin đến Lead cho UID ${UID}. SĐT mới: ${jsonData.soDienThoai}`);
-                    const dataCustomer = `🔔 THÔNG TIN KHÁCH HÀNG MỚI
-                                        
+                    const dataCustomer = `🔔 THÔNG TIN KHÁCH HÀNG MỚI\n
     ➡ TÊN KHÁCH HÀNG: ${jsonData.tenKhachHang || "Anh/chị"}
     ➡ SỐ ĐIỆN THOẠI: ${jsonData.soDienThoai}
     ➡ NHU CẦU: ${jsonData.nhuCau}
-    ➡ QUAN TÂM: ${jsonData.mucDoQuanTam}
-Xem chi tiết trò chuyện tại: https://oa.zalo.me/chat?uid=${UID}&oaid=2357813223063363432`;
+    ➡ QUAN TÂM: ${jsonData.mucDoQuanTam}\nXem chi tiết trò chuyện tại: https://oa.zalo.me/chat?uid=${UID}&oaid=2357813223063363432`;
 
                     try {
                         await appendJsonToSheet("data-from-chatbox-ai", jsonData);

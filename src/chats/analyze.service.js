@@ -243,8 +243,8 @@ export const informationForwardingSynthesisService = async (
     phoneNumberSent
 ) => {
     // Danh sách UID của các Lead/Quản lý
-    // const LEAD_UIDS = ["1591235795556991810", "7365147034329534561"];
-    const LEAD_UIDS = ["7365147034329534561"];
+    const LEAD_UIDS = ["1591235795556991810", "7365147034329534561"];
+    // const LEAD_UIDS = ["7365147034329534561"];
 
     // Lấy tất cả media (hình ảnh & file) của khách hàng
     const allCustomerMedia = getAllCustomerMedia(UID);
