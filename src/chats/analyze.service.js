@@ -304,7 +304,8 @@ export const informationForwardingSynthesisService = async (
                                     try {
                                         await sendZaloMessage(
                                             leadUID,
-                                            `[CẦN XỬ LÝ 🆘] Khách hàng đã gửi file "${media.name}" nhưng định dạng không được hỗ trợ để tự động xử lý ➡️ Vui lòng truy cập trang Quản lý OA để tải xuống file này`,
+                                            `[CẦN XỬ LÝ] Khách hàng đã gửi file "${media.name}" nhưng định dạng & dung lượng vượt mức được xử lý tự động!
+                                            ➡️ Vui lòng truy cập đoạn chat: https://oa.zalo.me/chat?uid=${UID}&oaid=2357813223063363432 để tải xuống file này`,
                                             accessToken
                                         );
                                     } catch (notifyError) {
