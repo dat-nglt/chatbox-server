@@ -8,7 +8,6 @@ import {
     sendZaloMessage,
     sendZaloImage,
     sendZaloFile,
-    uploadZaloFile,
 } from "./zalo.service.js";
 import {
     storeCustomerImage,
@@ -274,54 +273,31 @@ export const informationForwardingSynthesisService = async (
                                     `Đã gửi hình ảnh đến Lead [${leadUID}]: ${media.url}`
                                 );
                             } else if (media.type === "file") {
-                                try {
-                                    // Upload file trước để lấy token
-                                    logger.info(
-                                        `[Lead Service] Đang upload file: ${media.name}`
-                                    );
-                                    const fileToken = await uploadZaloFile(
-                                        media.url,
-                                        media.name,
-                                        accessToken
-                                    );
-
-                                    // Sau đó gửi file sử dụng token
-                                    await sendZaloFile(
-                                        leadUID,
-                                        fileToken,
-                                        media.name,
-                                        accessToken
-                                    );
-                                    logger.info(
-                                        `Đã gửi file đến Lead [${leadUID}]: ${media.name}`
-                                    );
-                                } catch (uploadError) {
-                                    // Gửi thông báo cho Lead về file không thể upload
-                                    logger.warn(
-                                        `[Lead Service] Không thể upload file ${media.name}: ${uploadError.message}`
-                                    );
-
-                                    try {
-                                        await sendZaloMessage(
-                                            leadUID,
-                                            `[CẦN XỬ LÝ] Khách hàng đã gửi file "${media.name}" nhưng định dạng & dung lượng vượt mức được xử lý tự động!
-                                            ➡️ Vui lòng truy cập đoạn chat: https://oa.zalo.me/chat?uid=${UID}&oaid=2357813223063363432 để tải xuống file này
-                                            ➡️ Hoặc truy cập: ${media.url} để tải xuống file này
-                                            `,
-                                            accessToken
-                                        );
-                                    } catch (notifyError) {
-                                        logger.error(
-                                            `Lỗi khi gửi thông báo:`,
-                                            notifyError.message
-                                        );
-                                    }
-                                }
+                                await sendZaloFile(
+                                    leadUID,
+                                    media.url,
+                                    media.name,
+                                    accessToken
+                                );
+                                logger.info(
+                                    `Đã gửi URL file đến Lead [${leadUID}]: ${media.name}`
+                                );
                             }
                         } catch (mediaError) {
                             logger.error(
                                 `Lỗi khi gửi media đến Lead [${leadUID}]: ${mediaError.message}`
                             );
+                            try {
+                                await sendZaloMessage(
+                                    leadUID,
+                                    `Vui lòng truy cập trò chuyện để tải các tệp & hình ảnh: https://oa.zalo.me/chat?uid=${UID}&oaid=2357813223063363432`,
+                                    accessToken
+                                );
+                            } catch (notifyError) {
+                                logger.error(
+                                    `Lỗi khi gửi thông báo truy cập trò chuyện: ${notifyError.message}`
+                                );
+                            }
                         }
                     }
                 }
