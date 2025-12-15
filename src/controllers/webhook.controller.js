@@ -6,8 +6,8 @@ import * as notifyAdmin from "../utils/adminNotification.js";
 
 const DEBOUNCE_DELAY = 20000;
 const BLOCK_DURATION_SECONDS = 18000; // 5 hours
-const UN_ALLOWED_UID = ["1591235795556991810", "7365147034329534561"];
-// const ALLOWED_UID = ["7365147034329534561"];
+// const UN_ALLOWED_UID = ["1591235795556991810", "7365147034329534561"];
+const ALLOWED_UID = ["7365147034329534561"];
 
 const OA_ADMIN_UID = [
     "1591235795556991810",
@@ -115,7 +115,7 @@ export const handleZaloWebhook = async (req, res) => {
         }
 
         // Kiểm tra xem UID có được phép không
-        if (UN_ALLOWED_UID.includes(UID)) {
+        if (!ALLOWED_UID.includes(UID)) {
             logger.warn(
                 `[Webhook] Bỏ qua tin nhắn từ UID không được phép [${UID}]`
             );
