@@ -33,7 +33,9 @@ export const sendZaloMessage = async (UID, text, accessToken) => {
         const responseMessage = response.data.message;
 
         if (responseMessage.toLowerCase() === "success") {
-            logger.info(`[Zalo API] Đã gửi tin nhắn thành công đến [UID: ${UID}]`);
+            logger.info(
+                `[Zalo API] Đã gửi tin nhắn thành công đến [UID: ${UID}]`
+            );
             return response.data;
         } else {
             logger.error(
@@ -44,9 +46,15 @@ export const sendZaloMessage = async (UID, text, accessToken) => {
         }
     } catch (error) {
         logger.error(
-            `[Zalo API] Zalo API Error (sendZaloMessage to ${UID}): ${error.response?.data?.message || error.message}`
+            `[Zalo API] Zalo API Error (sendZaloMessage to ${UID}): ${
+                error.response?.data?.message || error.message
+            }`
         );
-        throw new Error(error.response?.data?.message || error.message || "Failed to send Zalo message");
+        throw new Error(
+            error.response?.data?.message ||
+                error.message ||
+                "Failed to send Zalo message"
+        );
     }
 };
 
@@ -91,7 +99,9 @@ export const sendZaloImage = async (UID, imageUrl, accessToken) => {
         const responseMessage = response.data.message;
 
         if (responseMessage.toLowerCase() === "success") {
-            logger.info(`[Zalo API] Đã gửi hình ảnh thành công đến [UID: ${UID}]`);
+            logger.info(
+                `[Zalo API] Đã gửi hình ảnh thành công đến [UID: ${UID}]`
+            );
             return response.data;
         } else {
             logger.error(
@@ -105,7 +115,11 @@ export const sendZaloImage = async (UID, imageUrl, accessToken) => {
             `[Zalo API] Zalo API Error (sendZaloImage to ${UID}):`,
             error.response?.data?.message || error.message
         );
-        throw new Error(error.response?.data?.message || error.message || "Failed to send Zalo image");
+        throw new Error(
+            error.response?.data?.message ||
+                error.message ||
+                "Failed to send Zalo image"
+        );
     }
 };
 
@@ -142,7 +156,11 @@ export const sendZaloFile = async (UID, url, fileName, accessToken) => {
         const responseMessage = response.data.message;
 
         if (responseMessage.toLowerCase() === "success") {
-            logger.info(`[Zalo API] Đã gửi URL file thành công đến [UID: ${UID}]: ${fileName || "Unknown"}`);
+            logger.info(
+                `[Zalo API] Đã gửi URL file thành công đến [UID: ${UID}]: ${
+                    fileName || "Unknown"
+                }`
+            );
             return response.data;
         } else {
             logger.error(
@@ -156,6 +174,10 @@ export const sendZaloFile = async (UID, url, fileName, accessToken) => {
             `[Zalo API] Zalo API Error (sendZaloFile to ${UID}):`,
             error.response?.data?.message || error.message
         );
-        throw new Error(error.response?.data?.message || error.message || "Failed to send Zalo file URL");
+        throw new Error(
+            error.response?.data?.message ||
+                error.message ||
+                "Failed to send Zalo file URL"
+        );
     }
 };

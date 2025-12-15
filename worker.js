@@ -94,12 +94,11 @@ const worker = new Worker(
                     logger.info(`[Worker] Gửi thông tin đến Lead cho UID ${UID}. SĐT mới: ${jsonData.soDienThoai}`);
                     const dataCustomer = `🔔 THÔNG TIN KHÁCH HÀNG MỚI
                                         
-    👤 Tên khách hàng: ${jsonData.tenKhachHang || "Anh/chị"}
-    📞 Số điện thoại: ${jsonData.soDienThoai}
-    💼 Nhu cầu: ${jsonData.nhuCau}
-    ⭐ Mức độ quan tâm: ${jsonData.mucDoQuanTam}
-
-🚨 VUI LÒNG LIÊN HỆ KHÁCH HÀNG NGAY!`;
+    ➡ TÊN KHÁCH HÀNG: ${jsonData.tenKhachHang || "Anh/chị"}
+    ➡ SỐ ĐIỆN THOẠI: ${jsonData.soDienThoai}
+    ➡ NHU CẦU: ${jsonData.nhuCau}
+    ➡ QUAN TÂM: ${jsonData.mucDoQuanTam}
+Xem chi tiết trò chuyện tại: https://oa.zalo.me/chat?uid=${UID}&oaid=2357813223063363432`;
 
                     try {
                         await appendJsonToSheet("data-from-chatbox-ai", jsonData);
