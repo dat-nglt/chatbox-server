@@ -18,8 +18,6 @@ export const uploadZaloFile = async (fileUrl, fileName, accessToken) => {
         throw new Error("Missing file URL or file name");
     }
 
-    console.log(fileUrl);
-    
 
     try {
         // Kiểm tra định dạng file
