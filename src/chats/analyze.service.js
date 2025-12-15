@@ -3,26 +3,12 @@ import { SYSTEM_INSTRUCTION_ANALYZE } from "../promts/promt.v1.analyze.js";
 import { extractPhoneNumber } from "../utils/extractPhoneNumber.js";
 import conversationService from "../utils/conversation.js";
 import logger from "../utils/logger.js";
-import {
-    extractDisplayNameFromMessage,
-    sendZaloMessage,
-    sendZaloImage,
-    sendZaloFile,
-} from "./zalo.service.js";
-import {
-    storeCustomerImage,
-    storeCustomerFile,
-    getAllCustomerMedia,
-    clearCustomerMedia,
-} from "../utils/imageCache.js";
+import { extractDisplayNameFromMessage, sendZaloMessage, sendZaloImage, sendZaloFile } from "./zalo.service.js";
+import { storeCustomerImage, storeCustomerFile, getAllCustomerMedia, clearCustomerMedia } from "../utils/imageCache.js";
 import apiKeyManager from "../utils/apiKeyManager.js";
 
 // (Giữ nguyên analyzeUserMessageService, không cần sửa)
-export const analyzeUserMessageService = async (
-    messageFromUser,
-    UID,
-    accessToken
-) => {
+export const analyzeUserMessageService = async (messageFromUser, UID, accessToken) => {
     const phoneNumberFromUser = extractPhoneNumber(messageFromUser); // Trích xuất số điện thoại từ tin nhắn
     let displayName = "Anh/chị"; // Giá trị mặc định nếu không lấy được tên người dùng
     let phoneInfo = null;
@@ -32,35 +18,24 @@ export const analyzeUserMessageService = async (
     }
 
     try {
-        const latestMessageFromUID = await extractDisplayNameFromMessage(
-            UID,
-            accessToken
-        );
+        const latestMessageFromUID = await extractDisplayNameFromMessage(UID, accessToken);
         displayName = latestMessageFromUID?.from_display_name || displayName;
     } catch (error) {
-        logger.warn(
-            `Không thể xác định tên người dùng - Giá trị mặc định: Anh/chị`
-        );
+        logger.warn(`Không thể xác định tên người dùng - Giá trị mặc định: Anh/chị`);
     }
 
     const conversationHistory = conversationService.getConversationHistory(UID); // Lấy lịch sử hội thoại của UID cho mục phân tích
 
     const prompt = `
   Dưới đây là hội thoại trước đó với khách hàng (nếu có):
-  ${
-      conversationHistory.length
-          ? conversationService.getFormattedHistory(UID)
-          : "(Chưa có hội thoại trước đó)"
-  }
+  ${conversationHistory.length ? conversationService.getFormattedHistory(UID) : "(Chưa có hội thoại trước đó)"}
   
   Tin nhắn mới nhất của người dùng: "${messageFromUser}"
   
   ---
   **Thông tin đã biết:**
   * Tên khách hàng (từ hệ thống/lịch sử): "${displayName}"
-  * Số điện thoại (từ regex): ${
-      phoneInfo ? `"${phoneInfo}"` : "(Chưa phát hiện)"
-  }
+  * Số điện thoại (từ regex): ${phoneInfo ? `"${phoneInfo}"` : "(Chưa phát hiện)"}
 
   ---
   **Nhiệm vụ:**
@@ -88,9 +63,7 @@ export const analyzeUserMessageService = async (
   `;
 
     // Trích xuất URL hình ảnh từ tin nhắn nếu có - LÀM TRƯỚC khi gọi AI
-    const imageUrlMatch = messageFromUser.match(
-        /\[Hình ảnh \d+\]:\s*(https?:\/\/[^\s]+)/g
-    );
+    const imageUrlMatch = messageFromUser.match(/\[Hình ảnh \d+\]:\s*(https?:\/\/[^\s]+)/g);
     if (imageUrlMatch) {
         imageUrlMatch.forEach((match) => {
             const url = match.replace(/\[Hình ảnh \d+\]:\s*/, "").trim();
@@ -102,22 +75,16 @@ export const analyzeUserMessageService = async (
     }
 
     // Trích xuất URL file từ tin nhắn nếu có
-    const fileUrlMatch = messageFromUser.match(
-        /\[File \d+\]:\s*(.+?)\s*\((\d+)\s*bytes\)\s*-\s*(https?:\/\/[^\s]+)/g
-    );
+    const fileUrlMatch = messageFromUser.match(/\[File \d+\]:\s*(.+?)\s*\((\d+)\s*bytes\)\s*-\s*(https?:\/\/[^\s]+)/g);
     if (fileUrlMatch) {
         fileUrlMatch.forEach((match) => {
-            const parsed = match.match(
-                /\[File \d+\]:\s*(.+?)\s*\((\d+)\s*bytes\)\s*-\s*(https?:\/\/[^\s]+)/
-            );
+            const parsed = match.match(/\[File \d+\]:\s*(.+?)\s*\((\d+)\s*bytes\)\s*-\s*(https?:\/\/[^\s]+)/);
             if (parsed) {
                 const fileName = parsed[1];
                 const fileSize = parsed[2];
                 const fileUrl = parsed[3];
                 storeCustomerFile(UID, fileUrl, fileName, fileSize);
-                logger.info(
-                    `[Data] Đã lưu trữ file khách hàng: ${fileName} (${fileSize} bytes)`
-                );
+                logger.info(`[Data] Đã lưu trữ file khách hàng: ${fileName} (${fileSize} bytes)`);
             }
         });
     }
@@ -141,16 +108,12 @@ export const analyzeUserMessageService = async (
                 message: prompt,
             }); // Gọi AI để phân tích
 
-            const textMessage =
-                analyzeFromAI?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-                null;
+            const textMessage = analyzeFromAI?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
 
             if (!textMessage) {
                 // Nếu phản hồi rỗng thì ném lỗi
                 logger.warn(`[AI Analyze] Phản hồi rỗng cho [${UID}]`);
-                throw new Error(
-                    "Không đủ dữ liệu để phân tích (phản hồi rỗng)"
-                );
+                throw new Error("Không đủ dữ liệu để phân tích (phản hồi rỗng)");
             }
             return textMessage;
         } catch (error) {
@@ -161,8 +124,7 @@ export const analyzeUserMessageService = async (
             );
 
             const errorMessage = error.message || "";
-            const errorStatus =
-                error.status || error.response?.status || error.code;
+            const errorStatus = error.status || error.response?.status || error.code;
 
             // KIỂM TRA LỖI 429 (QUOTA EXCEEDED) - CHUYỂN SANG KEY TIẾP THEO
             if (
@@ -171,9 +133,7 @@ export const analyzeUserMessageService = async (
                 (errorMessage && errorMessage.includes("RESOURCE_EXHAUSTED")) ||
                 (errorMessage && errorMessage.includes("quota exceeded"))
             ) {
-                logger.warn(
-                    `[AI Analyze] Quota exceeded, chuyển sang API key tiếp theo (attempt ${attempts})`
-                );
+                logger.warn(`[AI Analyze] Quota exceeded, chuyển sang API key tiếp theo (attempt ${attempts})`);
 
                 if (attempts < maxAttempts) {
                     // Chuyển sang key tiếp theo và tạo chat mới
@@ -216,35 +176,24 @@ export const analyzeUserMessageService = async (
                 error.code === "ETIMEDOUT"
             ) {
                 logger.error(
-                    `[AI Analyze Error] Lỗi ${
-                        errorStatus || "mạng"
-                    } (Quá tải yêu cầu || Mất kết nối). YÊU CẦU THỬ LẠI.`
+                    `[AI Analyze Error] Lỗi ${errorStatus || "mạng"} (Quá tải yêu cầu || Mất kết nối). YÊU CẦU THỬ LẠI.`
                 );
                 throw new Error(
-                    `Lỗi ${
-                        errorStatus || "mạng"
-                    } (Quá tải yêu cầu || Mất kết nối). Sẽ thử lại tiến trình công việc ...`
+                    `Lỗi ${errorStatus || "mạng"} (Quá tải yêu cầu || Mất kết nối). Sẽ thử lại tiến trình công việc ...`
                 );
             }
 
             // Các lỗi khác (400, 401...) là lỗi "cứng", không retry, throw error
-            logger.warn(
-                `[AI Analyze Error] Lỗi không retry (${errorStatus}), throw error`
-            );
+            logger.warn(`[AI Analyze Error] Lỗi không retry (${errorStatus}), throw error`);
             throw error;
         }
     }
 };
 
-export const informationForwardingSynthesisService = async (
-    UID,
-    dataCustomer,
-    accessToken,
-    phoneNumberSent
-) => {
+export const informationForwardingSynthesisService = async (UID, dataCustomer, accessToken, phoneNumberSent) => {
     // Danh sách UID của các Lead/Quản lý
-    const LEAD_UIDS = ["1591235795556991810", "7365147034329534561"];
-    // const LEAD_UIDS = ["7365147034329534561"];
+    // const LEAD_UIDS = ["1591235795556991810", "7365147034329534561"];
+    const LEAD_UIDS = ["7365147034329534561"];
 
     // Lấy tất cả media (hình ảnh & file) của khách hàng
     const allCustomerMedia = getAllCustomerMedia(UID);
@@ -255,38 +204,21 @@ export const informationForwardingSynthesisService = async (
             try {
                 // Gửi tin nhắn chính với thông tin khách hàng
                 await sendZaloMessage(leadUID, dataCustomer, accessToken);
-                logger.info(
-                    `Đã gửi thông tin khách hàng đến Lead [${leadUID}]`
-                );
+                logger.info(`Đã gửi thông tin khách hàng đến Lead [${leadUID}]`);
 
                 // Nếu có media (hình ảnh & file), gửi kèm từng item
                 if (allCustomerMedia.length > 0) {
                     for (const media of allCustomerMedia) {
                         try {
                             if (media.type === "image") {
-                                await sendZaloImage(
-                                    leadUID,
-                                    media.url,
-                                    accessToken
-                                );
-                                logger.info(
-                                    `Đã gửi hình ảnh đến Lead [${leadUID}]: ${media.url}`
-                                );
+                                await sendZaloImage(leadUID, media.url, accessToken);
+                                logger.info(`Đã gửi hình ảnh đến Lead [${leadUID}]: ${media.url}`);
                             } else if (media.type === "file") {
-                                await sendZaloFile(
-                                    leadUID,
-                                    media.url,
-                                    media.name,
-                                    accessToken
-                                );
-                                logger.info(
-                                    `Đã gửi URL file đến Lead [${leadUID}]: ${media.name}`
-                                );
+                                await sendZaloFile(leadUID, media.url, media.name, accessToken);
+                                logger.info(`Đã gửi URL file đến Lead [${leadUID}]: ${media.name}`);
                             }
                         } catch (mediaError) {
-                            logger.error(
-                                `Lỗi khi gửi media đến Lead [${leadUID}]: ${mediaError.message}`
-                            );
+                            logger.error(`Lỗi khi gửi media đến Lead [${leadUID}]: ${mediaError.message}`);
                             try {
                                 await sendZaloMessage(
                                     leadUID,
@@ -294,9 +226,7 @@ export const informationForwardingSynthesisService = async (
                                     accessToken
                                 );
                             } catch (notifyError) {
-                                logger.error(
-                                    `Lỗi khi gửi thông báo truy cập trò chuyện: ${notifyError.message}`
-                                );
+                                logger.error(`Lỗi khi gửi thông báo truy cập trò chuyện: ${notifyError.message}`);
                             }
                         }
                     }
@@ -304,10 +234,7 @@ export const informationForwardingSynthesisService = async (
 
                 return { leadUID, success: true };
             } catch (error) {
-                logger.error(
-                    `Lỗi khi gửi thông tin đến Lead [${leadUID}]:`,
-                    error.message
-                );
+                logger.error(`Lỗi khi gửi thông tin đến Lead [${leadUID}]:`, error.message);
                 return { leadUID, success: false, error: error.message };
             }
         });
@@ -318,9 +245,7 @@ export const informationForwardingSynthesisService = async (
         const successCount = results.filter((result) => result.success).length;
         const failCount = results.length - successCount;
 
-        logger.info(
-            `Gửi thông tin khách hàng: ${successCount} thành công, ${failCount} thất bại`
-        );
+        logger.info(`Gửi thông tin khách hàng: ${successCount} thành công, ${failCount} thất bại`);
 
         if (successCount > 0) {
             // Đánh dấu SĐT này đã được gửi thành công nếu có ít nhất 1 Lead nhận được
